@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -23,6 +24,8 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
+	SharedPreferences preferences;
+	SharedPreferences.Editor editor;
 	private static final String TAG = "SensorTest";
 	private TextView mSensorInfoA;
 	private TextView RecordWalkPace;
@@ -48,8 +51,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        preferences = getSharedPreferences("oneDayData", MODE_PRIVATE);
+        editor = preferences.edit();
 
-        initViews();
+//        initViews();
 
         // 初始化传感器
         mSensorListener = new TestSensorListener();
@@ -119,6 +124,12 @@ public class MainActivity extends Activity {
         	}
         };
     }
+    
+    @Override
+    protected void onStart() {
+    	super.onStart();
+    	initViews();
+    };
 
     @Override
     protected void onResume() {
@@ -131,19 +142,48 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         // 注销监听函数
-        mSensorManager.unregisterListener(mSensorListener);
+//        mSensorManager.unregisterListener(mSensorListener);
+        saveData();
+    }
+    
+    @Override
+    protected void onRestart() {
+    	super.onRestart();
+    	initViews();
+    }
+    
+    @Override
+    protected void onStop() {
+    	super.onStop();
+    	saveData();
+    }
+    
+    @Override
+    protected void onDestroy() {
+    	super.onDestroy();
+    	saveData();
     }
 
     private void initViews() {
         mSensorInfoA = (TextView) findViewById(R.id.accValue);
         RecordWalkPace = (TextView) findViewById(R.id.WalkNum);
         DebugView = (TextView) findViewById(R.id.DebugView);
-        WalkPace.add((long)0);
+        WalkPace.add(preferences.getLong("WalkPace", 0));
+        referenceWalkPace.add(preferences.getLong("WalkPace", 0));
+//        WalkPace.add((long)0);
         WalkPace.add(System.currentTimeMillis());
         lastTime = WalkPace.get(1);
-        referenceWalkPace.add((long)0);
+//        referenceWalkPace.add((long)0);
         referenceWalkPace.add(System.currentTimeMillis());
         referanceLastTime = referenceWalkPace.get(1);
+        RecordWalkPace.setText("走路步数："+WalkPace.get(0));
+        
+        
+    }
+    
+    private void saveData() {
+    	editor.putLong("WalkPace", WalkPace.get(0));
+        editor.commit();
     }
     
     private boolean ifAddInto() {
